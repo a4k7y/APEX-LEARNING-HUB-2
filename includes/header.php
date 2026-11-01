@@ -11,7 +11,14 @@ $activeUserRoleLabel = match ($activeUserRole) {
     default => ucfirst($activeUserRole),
 };
 $isStudentPortal = $activeUserRole === 'student' && !empty($useVisualTheme);
-$hideSharedSearch = !empty($hideSharedSearch);
+$isAdminPortal = $activeUserRole === 'admin' && !empty($useVisualTheme);
+$isRegistrarPortal = $activeUserRole === 'registrar' && !empty($useVisualTheme);
+$isFacultyPortal = $activeUserRole === 'professor' && !empty($useVisualTheme);
+$isDeanPortal = $activeUserRole === 'dean' && !empty($useVisualTheme);
+$siteRootPath = isset($_SERVER['SCRIPT_FILENAME'])
+    && str_contains(str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']), '/views/')
+    ? '../../'
+    : '../';
 $activeUserName = $_SESSION['user_name'] ?? 'Guest User';
 $userInitials = '';
 if (!empty($activeUserName)) {
@@ -25,12 +32,12 @@ if (!empty($activeUserName)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="../css/style.css?v=202610291340">
+    <link rel="stylesheet" href="<?= $siteRootPath ?>css/style.css?v=202610312110">
     <?php if (!empty($useVisualTheme)): ?>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="../visual/css/visual.css?v=202610291340">
+        <link rel="stylesheet" href="<?= $siteRootPath ?>visual/css/visual.css?v=202610291340">
     <?php endif; ?>
     <?php if (isset($extraCss)): ?>
         <?php foreach ((array) $extraCss as $stylesheet): ?>
@@ -38,31 +45,7 @@ if (!empty($activeUserName)) {
         <?php endforeach; ?>
     <?php endif; ?>
 </head>
-<body<?= !empty($bodyClass) ? ' class="' . htmlspecialchars($bodyClass) . '"' : '' ?><?= !empty($useVisualTheme) ? ' data-visual-base="../visual/"' : '' ?>>
-    <?php if (!empty($useVisualTheme) && !$isStudentPortal && !$hideSharedSearch): ?>
-        <div class="sub-bar">
-            <div class="sub-bar-container">
-                <div class="sub-bar-right">
-                    <div class="sub-search" role="search">
-                        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            aria-hidden="true">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        <input type="text" id="globalSearch"
-                            placeholder="Search courses, announcements, policies…"
-                            autocomplete="off" aria-label="Search site content">
-                        <button type="button" id="searchClear" class="search-clear-btn"
-                            aria-label="Clear search query" style="display:none;">&times;</button>
-                        <div id="searchResults" class="search-results-dropdown" role="listbox"
-                            aria-live="polite"></div>
-                    </div>
-                    <?php require __DIR__ . '/language_switcher.php'; ?>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
+<body<?= !empty($bodyClass) ? ' class="' . htmlspecialchars($bodyClass) . '"' : '' ?><?= !empty($useVisualTheme) ? ' data-visual-base="' . htmlspecialchars($siteRootPath . 'visual/') . '"' : '' ?>>
     <header class="app-navbar">
     <?php if (!empty($useVisualTheme)): ?>
         <div class="navbar-brand header-logo" role="img" aria-label="APEX Learning Hub">
@@ -99,28 +82,28 @@ if (!empty($activeUserName)) {
 
         <?php if (isset($_SESSION['user_id'])): ?>
             <div class="navbar-right">
-                <?php if ($isStudentPortal): ?>
+                <?php if ($isStudentPortal || $isAdminPortal || $isRegistrarPortal || $isFacultyPortal || $isDeanPortal): ?>
                     <div class="student-profile-menu" data-profile-menu>
                         <button class="user-badge student-profile-trigger" type="button" aria-haspopup="true"
-                            aria-expanded="false" aria-controls="studentProfileDropdown" data-profile-menu-trigger>
+                            aria-expanded="false" aria-controls="profileDropdown" data-profile-menu-trigger>
                             <span class="avatar-circle"><?= htmlspecialchars($userInitials) ?></span>
                             <span class="user-meta">
                                 <span class="user-name"><?= htmlspecialchars($activeUserName) ?></span>
-                                <span class="role-pill role-student"><?= htmlspecialchars($activeUserRoleLabel) ?></span>
+                                <span class="role-pill role-<?= htmlspecialchars($activeUserRole) ?>"><?= htmlspecialchars($activeUserRoleLabel) ?></span>
                             </span>
                             <svg class="student-profile-chevron" viewBox="0 0 16 16" aria-hidden="true">
                                 <path d="m3 6 5 5 5-5"></path>
                             </svg>
                         </button>
-                        <div class="student-profile-dropdown" id="studentProfileDropdown" data-profile-menu-content hidden>
-                            <a class="student-profile-dropdown-link" href="student_dashboard.php#tabProfile">
+                        <div class="student-profile-dropdown" id="profileDropdown" data-profile-menu-content hidden>
+                            <a class="student-profile-dropdown-link" href="<?= $isAdminPortal ? 'admin_profile.php' : ($isRegistrarPortal ? 'registrar_dashboard.php' : ($isFacultyPortal ? 'professor_dashboard.php' : ($isDeanPortal ? 'dean_dashboard.php' : 'student_dashboard.php#tabProfile'))) ?>">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
                                 <span>My Profile</span>
                             </a>
                             <div class="student-profile-language">
                                 <?php require __DIR__ . '/language_switcher.php'; ?>
                             </div>
-                            <a href="../auth/logout.php" class="student-profile-dropdown-link student-profile-signout"
+                            <a href="<?= $siteRootPath ?>auth/logout.php" class="student-profile-dropdown-link student-profile-signout"
                                 title="Sign out of your session">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"></path></svg>
                                 <span>Sign Out</span>
@@ -137,15 +120,15 @@ if (!empty($activeUserName)) {
                             </span>
                         </div>
                     </div>
-                    <a href="../auth/logout.php" class="btn btn-outline btn-sm<?= !empty($useVisualTheme) ? ' admin-signout' : '' ?>" title="Sign out of your session">
+                    <a href="<?= $siteRootPath ?>auth/logout.php" class="btn btn-outline btn-sm<?= !empty($useVisualTheme) ? ' admin-signout' : '' ?>" title="Sign out of your session">
                         Sign Out
                     </a>
                 <?php endif; ?>
             </div>
         <?php else: ?>
             <div class="navbar-right">
-                <a href="../auth/login.php" class="btn btn-primary btn-sm">Sign In</a>
-                <a href="../auth/register.php" class="btn btn-teal btn-sm">Register</a>
+                <a href="<?= $siteRootPath ?>auth/login.php" class="btn btn-primary btn-sm">Sign In</a>
+                <a href="<?= $siteRootPath ?>auth/register.php" class="btn btn-teal btn-sm">Register</a>
             </div>
         <?php endif; ?>
     </header>

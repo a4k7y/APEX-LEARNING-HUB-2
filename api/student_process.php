@@ -9,7 +9,7 @@ $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $studentId = (int)$_SESSION['user_id'];
 
-function respond($success, $message, $redirect = '../views/student_dashboard.php') {
+function respond($success, $message, $redirect = '../views/student/student_dashboard.php') {
     global $isAjax;
     if ($isAjax) {
         header('Content-Type: application/json; charset=utf-8');
@@ -78,34 +78,56 @@ try {
         case 'complete_assignment':
             $assignmentId = (int)($_POST['assignment_id'] ?? 0);
             if ($assignmentId <= 0) {
-                respond(false, "Invalid assignment selected.", '../views/student_tasks.php');
+                respond(false, "Invalid assignment selected.", '../views/student/student_tasks.php');
             }
 
             $assignmentStmt = $pdo->prepare("
-                SELECT a.id
+                SELECT a.id, COUNT(q.id) AS total_questions
                 FROM assignments a
                 JOIN enrollments e ON e.course_id = a.course_id
+                LEFT JOIN assignment_questions q ON q.assignment_id = a.id
                 WHERE a.id = :assignment_id
                   AND e.student_id = :student_id
                   AND e.status = 'APPROVED'
+                GROUP BY a.id
             ");
             $assignmentStmt->execute([
                 'assignment_id' => $assignmentId,
                 'student_id' => $studentId,
             ]);
-            if (!$assignmentStmt->fetch()) {
-                respond(false, "That assignment is not available in your enrolled courses.", '../views/student_tasks.php');
+            $assignment = $assignmentStmt->fetch();
+            if (!$assignment) {
+                respond(false, "That assignment is not available in your enrolled courses.", '../views/student/student_tasks.php');
             }
 
+            $totalQuestions = (int) $assignment['total_questions'];
+            $score = 0;
+            if ($totalQuestions > 0) {
+                $questionStmt = $pdo->prepare("SELECT id, correct_answer FROM assignment_questions WHERE assignment_id = :assignment_id ORDER BY question_order, id");
+                $questionStmt->execute(['assignment_id' => $assignmentId]);
+                $answers = $_POST['answers'] ?? [];
+                foreach ($questionStmt->fetchAll() as $question) {
+                    $submittedAnswer = is_array($answers) ? strtolower(trim((string) ($answers[$question['id']] ?? ''))) : '';
+                    $correctAnswer = strtolower(trim((string) $question['correct_answer']));
+                    if ($submittedAnswer !== '' && $submittedAnswer === $correctAnswer) {
+                        $score++;
+                    }
+                }
+            }
             $completionStmt = $pdo->prepare("
-                INSERT IGNORE INTO assignment_completions (assignment_id, student_id)
-                VALUES (:assignment_id, :student_id)
+                INSERT INTO assignment_completions (assignment_id, student_id, score, total_questions)
+                VALUES (:assignment_id, :student_id, :score, :total_questions)
+                ON DUPLICATE KEY UPDATE score = VALUES(score), total_questions = VALUES(total_questions), completed_at = CURRENT_TIMESTAMP
             ");
             $completionStmt->execute([
                 'assignment_id' => $assignmentId,
                 'student_id' => $studentId,
+                'score' => $score,
+                'total_questions' => $totalQuestions,
             ]);
-            respond(true, "Assignment marked complete.", '../views/student_tasks.php');
+            respond(true, $totalQuestions > 0
+                ? "Assessment submitted. Score: {$score}/{$totalQuestions}."
+                : "Assignment marked complete.", '../views/student/student_tasks.php');
             break;
 
         case 'update_profile':

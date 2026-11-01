@@ -1,21 +1,34 @@
 <?php
-require_once '../includes/session_check.php';
-checkAccess(['registrar'], '../auth/login.php');
-require_once '../config/db.php';
+require_once '../../includes/session_check.php';
+checkAccess(['registrar'], '../../auth/login.php');
+require_once '../../config/db.php';
+require_once '../../includes/dashboard_greeting.php';
 
-$pageTitle = 'Registrar Workspace | APEX Learning Hub';
-$extraCss  = '../css/admin.css?v=202610291355';
-$extraJs   = '../js/admin.js';
-$bodyClass = 'admin-dashboard';
+$registrarView = $_GET['view'] ?? ($registrarView ?? 'dashboard');
+$allowedRegistrarViews = ['dashboard', 'courses', 'users', 'announcements'];
+if (!in_array($registrarView, $allowedRegistrarViews, true)) {
+    $registrarView = 'dashboard';
+}
+$registrarViewTitles = [
+    'dashboard' => 'Dashboard',
+    'courses' => 'Courses & Sections',
+    'users' => 'User Accounts',
+    'announcements' => 'Announcements',
+];
+$pageTitle = $registrarViewTitles[$registrarView] . ' | APEX Learning Hub';
+$extraCss  = ['../../css/admin.css?v=202611011300', '../../css/student.css?v=202610292224'];
+$extraJs   = ['../../js/admin.js?v=202611012150', '../../js/student.js?v=202610301835'];
+$bodyClass = 'admin-dashboard student-dashboard registrar-portal';
 $useVisualTheme = true;
 
 $msg   = $_GET['msg'] ?? '';
 $error = $_GET['error'] ?? '';
+$manilaNow = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
+$greeting = dashboardGreeting($manilaNow);
 
 $studentCount = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn();
 $profCount    = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'professor'")->fetchColumn();
 $courseCount  = $pdo->query("SELECT COUNT(*) FROM courses")->fetchColumn();
-$pendingCount = $pdo->query("SELECT COUNT(*) FROM enrollments WHERE status = 'PENDING'")->fetchColumn();
 
 $coursesStmt = $pdo->query("
     SELECT c.*, 
@@ -33,19 +46,6 @@ $allUsers  = $usersStmt->fetchAll();
 $profListStmt = $pdo->query("SELECT id, first_name, last_name, email FROM users WHERE role = 'professor' ORDER BY last_name ASC");
 $professors   = $profListStmt->fetchAll();
 
-$enrollmentStmt = $pdo->query("
-    SELECT e.id AS enrollment_id, e.status, e.applied_at, e.decided_at,
-           s.first_name AS student_first, s.last_name AS student_last, s.email AS student_email,
-           c.course_code, c.course_name,
-           p.first_name AS prof_first, p.last_name AS prof_last
-    FROM enrollments e
-    JOIN users s ON e.student_id = s.id
-    JOIN courses c ON e.course_id = c.id
-    LEFT JOIN users p ON c.professor_id = p.id
-    ORDER BY e.applied_at DESC
-");
-$enrollments = $enrollmentStmt->fetchAll();
-
 $announcementStmt = $pdo->query("
     SELECT a.*, u.first_name, u.last_name, u.role, c.course_code
     FROM announcements a
@@ -55,28 +55,18 @@ $announcementStmt = $pdo->query("
 ");
 $announcements = $announcementStmt->fetchAll();
 
-require_once '../includes/header.php';
+require_once '../../includes/header.php';
 ?>
 
-<div class="container">
-    <div class="dashboard-header">
-        <div class="dashboard-title">
-            <h1>APEX Hub Registrar Workspace</h1>
-            <p>Welcome, <?= htmlspecialchars($_SESSION['user_name']) ?> &bull; Registrar Control Panel</p>
+<div class="student-dashboard-shell" id="studentDashboardShell">
+    <?php require '../../includes/registrar_sidebar.php'; ?>
+    <div class="container student-dashboard-content">
+    <div class="student-dashboard-heading">
+        <div class="student-dashboard-heading-copy">
+            <h1><?= htmlspecialchars($registrarViewTitles[$registrarView]) ?></h1>
         </div>
-        <div style="display:flex; gap:0.5rem;">
-            <button type="button" class="btn btn-primary registrar-action-btn" data-open-modal="addCourseModal">
-                + New Course
-            </button>
-            <button type="button" class="btn btn-teal registrar-action-btn" data-open-modal="addUserModal">
-                + New User
-            </button>
-            <button type="button" class="btn btn-coral registrar-action-btn" data-open-modal="addAnnouncementModal">
-                + Announcement
-            </button>
-        </div>
+        <p class="student-dashboard-date"><?= htmlspecialchars($manilaNow->format('l, F j, Y')) ?></p>
     </div>
-
     <?php if ($msg): ?>
         <div class="alert alert-success"><?= htmlspecialchars($msg) ?></div>
     <?php endif; ?>
@@ -84,11 +74,31 @@ require_once '../includes/header.php';
         <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
-    
+    <?php if ($registrarView === 'dashboard'): ?>
+    <section class="student-welcome-card registrar-welcome-card">
+        <div class="student-welcome-copy">
+            <h1><?= $greeting ?>, <?= htmlspecialchars($_SESSION['user_name']) ?></h1>
+        </div>
+        <div class="registrar-dashboard-actions">
+            <button type="button" class="btn btn-primary registrar-action-btn" data-open-modal="addCourseModal">
+                <svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <span>New Course</span>
+            </button>
+            <button type="button" class="btn btn-teal registrar-action-btn" data-open-modal="addUserModal">
+                <svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <span>New User</span>
+            </button>
+            <button type="button" class="btn btn-coral registrar-action-btn" data-open-modal="addAnnouncementModal">
+                <svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <span>New Announcement</span>
+            </button>
+        </div>
+    </section>
+
     <div class="metrics-grid">
         <div class="metric-card">
             <div class="metric-icon navy" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 11.2V16c2.8 2.4 7.2 2.4 10 0v-4.8M21 9v6"/></svg>
+                <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5.5a3 3 0 0 1 0 5.8M18 14a5 5 0 0 1 3 4.5V20"/></svg>
             </div>
             <div class="metric-data">
                 <h3><?= number_format($studentCount) ?></h3>
@@ -113,34 +123,10 @@ require_once '../includes/header.php';
                 <p>Curriculum Courses</p>
             </div>
         </div>
-        <div class="metric-card">
-            <div class="metric-icon gold" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            </div>
-            <div class="metric-data">
-                <h3><?= number_format($pendingCount) ?></h3>
-                <p>Pending Applications</p>
-            </div>
-        </div>
     </div>
+    <?php endif; ?>
 
-    
-    <div class="tab-navigation">
-        <button type="button" class="tab-btn active" data-target="tabCourses">
-            Courses <span class="tab-badge"><?= count($courses) ?></span>
-        </button>
-        <button type="button" class="tab-btn" data-target="tabUsers">
-            Users &amp; Faculty <span class="tab-badge"><?= count($allUsers) ?></span>
-        </button>
-        <button type="button" class="tab-btn" data-target="tabEnrollments">
-            Enrollment Applications <span class="tab-badge"><?= count($enrollments) ?></span>
-        </button>
-        <button type="button" class="tab-btn" data-target="tabAnnouncements">
-            Announcements <span class="tab-badge"><?= count($announcements) ?></span>
-        </button>
-    </div>
-
-    
+    <?php if ($registrarView === 'courses'): ?>
     <div class="tab-panel active" id="tabCourses">
         <div class="card">
             <div class="table-toolbar">
@@ -148,7 +134,7 @@ require_once '../includes/header.php';
                     <input type="text" placeholder="Search courses or codes..." data-table-search="coursesTable">
                 </div>
                 <div>
-                    <button class="btn btn-primary btn-sm" data-open-modal="addCourseModal">+ Create Course</button>
+                    <button class="btn btn-primary btn-sm" data-open-modal="addCourseModal"><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Create Course</button>
                 </div>
             </div>
 
@@ -157,7 +143,7 @@ require_once '../includes/header.php';
                     <thead>
                         <tr>
                             <th>Code</th>
-                            <th>Course &amp; Schedule</th>
+                            <th>Course, Section &amp; Schedule</th>
                             <th>Assigned Professor</th>
                             <th>Enrollment / Capacity</th>
                             <th>Actions</th>
@@ -172,11 +158,12 @@ require_once '../includes/header.php';
                                     <td><strong><?= htmlspecialchars($c['course_code']) ?></strong></td>
                                     <td>
                                         <strong><?= htmlspecialchars($c['course_name']) ?></strong>
+                                        <div class="text-muted" style="font-size:0.75rem;">Section <?= htmlspecialchars($c['section_name'] ?? 'General') ?></div>
                                         <div class="text-muted" style="font-size:0.75rem;">
                                             <?= !empty($c['meeting_days'])
-                                                ? htmlspecialchars(str_replace(',', ' · ', $c['meeting_days'])) . ' · ' . date('g:i A', strtotime($c['start_time'])) . '–' . date('g:i A', strtotime($c['end_time']))
+                                                ? htmlspecialchars(str_replace(',', ' · ', $c['meeting_days'])) . ' &middot; ' . date('g:i A', strtotime($c['start_time'])) . '&ndash;' . date('g:i A', strtotime($c['end_time']))
                                                 : 'Schedule not set' ?>
-                                            <?= !empty($c['room']) ? ' · ' . htmlspecialchars($c['room']) : '' ?>
+                                            <?= !empty($c['room']) ? ' &middot; ' . htmlspecialchars($c['room']) : '' ?>
                                         </div>
                                     </td>
                                     <td>
@@ -209,7 +196,7 @@ require_once '../includes/header.php';
                                             data-room="<?= htmlspecialchars($c['room'] ?? '', ENT_QUOTES) ?>">
                                             Set Schedule
                                         </button>
-                                        <form action="../api/admin_process.php" method="POST" style="display:inline;" onsubmit="return confirm('Delete this course? Students enrolled will be affected.');">
+                                        <form action="../../api/admin_process.php" method="POST" style="display:inline;" onsubmit="return confirm('Delete this course? Students enrolled will be affected.');">
                                             <input type="hidden" name="action" value="delete_course">
                                             <input type="hidden" name="course_id" value="<?= $c['id'] ?>">
                                             <button type="submit" class="btn btn-outline btn-sm" style="color:var(--coral-dark);">Delete</button>
@@ -223,16 +210,17 @@ require_once '../includes/header.php';
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
-    
-    <div class="tab-panel" id="tabUsers">
+    <?php if ($registrarView === 'users'): ?>
+    <div class="tab-panel active" id="tabUsers">
         <div class="card">
             <div class="table-toolbar">
                 <div class="search-box">
                     <input type="text" placeholder="Search user by name or email..." data-table-search="usersTable">
                 </div>
                 <div>
-                    <button class="btn btn-teal btn-sm" data-open-modal="addUserModal">+ Add User Account</button>
+                    <button class="btn btn-teal btn-sm" data-open-modal="addUserModal"><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Add User Account</button>
                 </div>
             </div>
 
@@ -272,7 +260,7 @@ require_once '../includes/header.php';
                                 </td>
                                 <td>
                                     <?php if ($u['id'] != $_SESSION['user_id']): ?>
-                                        <form action="../api/admin_process.php" method="POST" style="display:inline;" onsubmit="return confirm('Permanently remove this user account?');">
+                                        <form action="../../api/admin_process.php" method="POST" style="display:inline;" onsubmit="return confirm('Permanently remove this user account?');">
                                             <input type="hidden" name="action" value="delete_user">
                                             <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                                             <button type="submit" class="btn btn-outline btn-sm" style="color:var(--coral-dark);">Delete</button>
@@ -288,75 +276,14 @@ require_once '../includes/header.php';
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
-    
-    <div class="tab-panel" id="tabEnrollments">
-        <div class="card">
-            <div class="table-toolbar">
-                <div class="search-box">
-                    <input type="text" placeholder="Search student or course..." data-table-search="enrollmentsTable">
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="data-table" id="enrollmentsTable">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Target Course</th>
-                            <th>Instructor</th>
-                            <th>Status</th>
-                            <th>Applied Date</th>
-                            <th>Registrar Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($enrollments)): ?>
-                            <tr><td colspan="6" style="text-align:center; padding:2rem;">No enrollment records found.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($enrollments as $e): ?>
-                                <tr>
-                                    <td>
-                                        <strong><?= htmlspecialchars($e['student_first'] . ' ' . $e['student_last']) ?></strong>
-                                        <div class="text-muted" style="font-size:0.75rem;"><?= htmlspecialchars($e['student_email']) ?></div>
-                                    </td>
-                                    <td>
-                                        <strong><?= htmlspecialchars($e['course_code']) ?></strong> - <?= htmlspecialchars($e['course_name']) ?>
-                                    </td>
-                                    <td>Prof. <?= htmlspecialchars($e['prof_first'] . ' ' . $e['prof_last']) ?></td>
-                                    <td>
-                                        <span class="badge badge-<?= strtolower($e['status']) ?>">
-                                            <?= htmlspecialchars($e['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td style="font-size:0.8rem;"><?= date('M d, Y h:i A', strtotime($e['applied_at'])) ?></td>
-                                    <td>
-                                        <form action="../api/admin_process.php" method="POST" style="display:inline-flex; gap:0.25rem;">
-                                            <input type="hidden" name="action" value="update_enrollment">
-                                            <input type="hidden" name="enrollment_id" value="<?= $e['enrollment_id'] ?>">
-                                            <?php if ($e['status'] !== 'APPROVED'): ?>
-                                                <button type="submit" name="status" value="APPROVED" class="btn btn-success btn-sm">Approve</button>
-                                            <?php endif; ?>
-                                            <?php if ($e['status'] !== 'REJECTED'): ?>
-                                                <button type="submit" name="status" value="REJECTED" class="btn btn-danger btn-sm">Reject</button>
-                                            <?php endif; ?>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    
-    <div class="tab-panel" id="tabAnnouncements">
+    <?php if ($registrarView === 'announcements'): ?>
+    <div class="tab-panel active" id="tabAnnouncements">
         <div class="card">
             <div class="table-toolbar">
                 <div class="card-title" style="margin:0;">Broadcasts &amp; Bulletins</div>
-                <button class="btn btn-coral btn-sm" data-open-modal="addAnnouncementModal">+ Post Announcement</button>
+                <button class="btn btn-coral btn-sm" data-open-modal="addAnnouncementModal"><svg class="dashboard-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Post Announcement</button>
             </div>
 
             <div class="table-responsive">
@@ -392,7 +319,7 @@ require_once '../includes/header.php';
                                     <td><?= htmlspecialchars($a['first_name'] . ' ' . $a['last_name']) ?></td>
                                     <td style="font-size:0.8rem;"><?= date('M d, Y h:i A', strtotime($a['created_at'])) ?></td>
                                     <td>
-                                        <form action="../api/admin_process.php" method="POST" style="display:inline;" onsubmit="return confirm('Remove this announcement?');">
+                                        <form action="../../api/admin_process.php" method="POST" style="display:inline;" onsubmit="return confirm('Remove this announcement?');">
                                             <input type="hidden" name="action" value="delete_announcement">
                                             <input type="hidden" name="announcement_id" value="<?= $a['id'] ?>">
                                             <button type="submit" class="btn btn-outline btn-sm" style="color:var(--coral-dark);">Delete</button>
@@ -406,12 +333,13 @@ require_once '../includes/header.php';
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 
 <div class="modal-backdrop" id="addCourseModal">
     <div class="modal-dialog">
-        <form action="../api/admin_process.php" method="POST">
+        <form action="../../api/admin_process.php" method="POST">
             <input type="hidden" name="action" value="add_course">
             <div class="modal-header">
                 <h3 class="modal-title">Create New Academic Course</h3>
@@ -425,6 +353,11 @@ require_once '../includes/header.php';
                 <div class="form-group">
                     <label for="course_name">Course Name *</label>
                     <input type="text" id="course_name" name="course_name" class="form-control" placeholder="e.g. Introduction to Computing" required>
+                </div>
+                <div class="form-group">
+                    <label for="section_name">Section *</label>
+                    <input type="text" id="section_name" name="section_name" class="form-control"
+                        placeholder="e.g. A" maxlength="50" value="General" required>
                 </div>
                 <div class="form-group">
                     <label for="professor_id">Assign Faculty Instructor</label>
@@ -472,7 +405,7 @@ require_once '../includes/header.php';
 
 <div class="modal-backdrop" id="courseScheduleModal">
     <div class="modal-dialog">
-        <form action="../api/admin_process.php" method="POST">
+        <form action="../../api/admin_process.php" method="POST">
             <input type="hidden" name="action" value="update_course_schedule">
             <input type="hidden" id="schedule_course_id" name="course_id">
             <div class="modal-header">
@@ -516,7 +449,7 @@ require_once '../includes/header.php';
 
 <div class="modal-backdrop" id="addUserModal">
     <div class="modal-dialog">
-        <form action="../api/admin_process.php" method="POST">
+        <form action="../../api/admin_process.php" method="POST">
             <input type="hidden" name="action" value="add_user">
             <div class="modal-header">
                 <h3 class="modal-title">Create User Account</h3>
@@ -526,24 +459,41 @@ require_once '../includes/header.php';
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
                     <div class="form-group">
                         <label for="user_fn">First Name *</label>
-                        <input type="text" id="user_fn" name="first_name" class="form-control" required>
+                        <input type="text" id="user_fn" name="first_name" class="form-control"
+                            placeholder="e.g. Juan" required>
                     </div>
                     <div class="form-group">
                         <label for="user_ln">Last Name *</label>
-                        <input type="text" id="user_ln" name="last_name" class="form-control" required>
+                        <input type="text" id="user_ln" name="last_name" class="form-control"
+                            placeholder="e.g. Dela Cruz" required>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="user_email">Institutional Email *</label>
-                    <input type="email" id="user_email" name="email" class="form-control" placeholder="user@apex.edu.ph" required>
+                    <label for="user_email">APEX Email *</label>
+                    <input type="email" id="user_email" name="email" class="form-control"
+                        placeholder="user@apex.edu.ph" pattern="[A-Za-z0-9._%+\-]+@apex\.edu\.ph"
+                        title="Use an APEX Email ending in @apex.edu.ph." required>
                 </div>
                 <div class="form-group">
                     <label for="user_role">Account Role *</label>
-                    <select id="user_role" name="role" class="form-control" required>
+                    <select id="user_role" name="role" class="form-control" data-student-course-toggle required>
+                        <option value="" selected>Select an account role</option>
                         <option value="student">Student</option>
                         <option value="professor">Professor</option>
                         <option value="dean">Dean</option>
                     </select>
+                </div>
+                <div class="form-group" id="studentCourseGroup" hidden>
+                    <label for="user_course_id">Designated Section *</label>
+                    <select id="user_course_id" name="course_id" class="form-control">
+                        <option value="">Select the student's section</option>
+                        <?php foreach ($courses as $course): ?>
+                            <option value="<?= (int) $course['id'] ?>">
+                                <?= htmlspecialchars($course['course_code'] . ' - ' . $course['course_name'] . ' / Section ' . ($course['section_name'] ?? 'General')) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted">The student will be added to this section as an approved enrollee.</small>
                 </div>
                 <div class="form-group">
                     <label for="user_pass">Initial Password *</label>
@@ -567,7 +517,7 @@ require_once '../includes/header.php';
 
 <div class="modal-backdrop" id="addAnnouncementModal">
     <div class="modal-dialog">
-        <form action="../api/admin_process.php" method="POST">
+        <form action="../../api/admin_process.php" method="POST">
             <input type="hidden" name="action" value="post_announcement">
             <div class="modal-header">
                 <h3 class="modal-title">Publish Campus Announcement</h3>
@@ -600,4 +550,6 @@ require_once '../includes/header.php';
     </div>
 </div>
 
-<?php require_once '../includes/footer.php'; ?>
+    </div>
+</div>
+<?php require_once '../../includes/footer.php'; ?>

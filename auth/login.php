@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/email_policy.php';
 
 if (isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
@@ -22,10 +23,6 @@ if (isset($_GET['logged_out'])) {
 if (isset($_GET['error']) && $_GET['error'] === 'unauthorized') {
     $error = "Please sign in to access that workspace.";
 }
-if (isset($_GET['error']) && $_GET['error'] === 'role_unavailable') {
-    $error = "Dean sign-in is not available yet. Please contact an administrator.";
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -33,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($email) || empty($password)) {
         $error = "Please provide both your official email and password.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please provide a valid institutional email address.";
+    } elseif (!isValidApexEmail($email)) {
+        $error = apexEmailPolicyMessage();
     } else {
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $email]);
@@ -49,8 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $accountEnabled = $user && (int) $user['is_active'] === 1 && $user['archived_at'] === null;
         if (($validPassword || $legacyRegistrarPassword) && !$accountEnabled) {
             $error = "This account is disabled or archived. Contact an administrator for assistance.";
-        } elseif (($validPassword || $legacyRegistrarPassword) && $user['role'] === 'dean') {
-            $error = "Dean sign-in is not available yet. Please contact an administrator.";
         } elseif ($validPassword || $legacyRegistrarPassword) {
             if ($legacyRegistrarPassword) {
                 $passwordHash = password_hash($password, PASSWORD_BCRYPT);
@@ -271,8 +266,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form action="login.php" method="POST" id="loginForm" autocomplete="off">
                     <div class="form-group">
-                        <label for="email">Email</label>
+                        <label for="email">APEX Email</label>
                         <input type="email" id="email" name="email" class="form-control" placeholder="e.g. name@apex.edu.ph"
+                            pattern="[A-Za-z0-9._%+\-]+@apex\.edu\.ph"
+                            title="Use an APEX Email ending in @apex.edu.ph."
                             value="" required autocomplete="off">
                     </div>
 

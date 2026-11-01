@@ -18,7 +18,7 @@
     --surface: #ffffff;
     --surface-alt: #f4efe4;
     --surface-border: #e6dfd1;
-    --text-main: #1d2342;
+    --text-main: #64748b;
     --text-muted: #676e8a;
     --text-light: #8e95aa;
 
@@ -56,6 +56,34 @@ html, body {
     color: var(--text-main);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+}
+
+html {
+    scrollbar-width: thin;
+    scrollbar-color: #d98596 rgba(255, 240, 242, 0.9);
+}
+
+::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 240, 242, 0.9);
+}
+
+::-webkit-scrollbar-thumb {
+    border: 3px solid rgba(255, 240, 242, 0.9);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #df8d9d, #d98596);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #e6a1ae, #df8d9d);
+}
+
+::-webkit-scrollbar-corner {
+    background: rgba(255, 240, 242, 0.9);
 }
 
 a {
@@ -279,14 +307,20 @@ a:hover {
 
 .user-meta {
     display: flex;
+    min-width: 170px;
+    align-items: center;
     flex-direction: column;
 }
 
 .user-name {
+    max-width: 220px;
+    overflow: hidden;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--navy);
     line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .role-pill {
@@ -300,8 +334,8 @@ a:hover {
 }
 
 .role-pill.role-admin {
-    background: #e8ebfc;
-    color: var(--navy);
+    background: #fff0f2;
+    color: #b94f63;
 }
 
 .role-pill.role-registrar {
@@ -319,6 +353,18 @@ a:hover {
     color: var(--coral-dark);
 }
 
+.role-pill.role-dean {
+    background: #fff0f2;
+    color: #b94f63;
+}
+
+.student-dashboard .user-meta .role-pill {
+    align-self: center;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    white-space: nowrap;
+}
 
 
 .btn {

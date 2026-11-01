@@ -1,5 +1,10 @@
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.student-assessment-question input[type="text"]').forEach(input => {
+        input.addEventListener('input', () => {
+            input.value = input.value.toLowerCase();
+        });
+    });
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
     const dashboardLinks = document.querySelectorAll('.student-sidebar-link[data-target]');
@@ -17,20 +22,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const academicYearSelect = document.getElementById('studentAcademicYear');
     const semesterSelect = document.getElementById('studentSemester');
 
-    const setProfileMenuOpen = (open) => {
-        profileMenuTrigger?.setAttribute('aria-expanded', String(open));
-        if (profileMenuContent) profileMenuContent.hidden = !open;
-    };
+    if (!document.documentElement.dataset.portalProfileBound) {
+        const setProfileMenuOpen = (open) => {
+            profileMenuTrigger?.setAttribute('aria-expanded', String(open));
+            if (profileMenuContent) profileMenuContent.hidden = !open;
+        };
 
-    profileMenuTrigger?.addEventListener('click', () => {
-        setProfileMenuOpen(profileMenuTrigger.getAttribute('aria-expanded') !== 'true');
-    });
-    document.addEventListener('click', event => {
-        if (profileMenu && !profileMenu.contains(event.target)) setProfileMenuOpen(false);
-    });
-    document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') setProfileMenuOpen(false);
-    });
+        profileMenuTrigger?.addEventListener('click', () => {
+            setProfileMenuOpen(profileMenuTrigger.getAttribute('aria-expanded') !== 'true');
+        });
+        document.addEventListener('click', event => {
+            if (profileMenu && !profileMenu.contains(event.target)) setProfileMenuOpen(false);
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') setProfileMenuOpen(false);
+        });
+        document.documentElement.dataset.portalProfileBound = 'true';
+    }
 
     const updateFiscalYear = (selection) => {
         if (!selection || typeof selection.academicYear !== 'string' || typeof selection.semester !== 'string') {
@@ -114,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileToggle.setAttribute('aria-label', open ? 'Close student navigation' : 'Open student navigation');
         }
     };
+
+    if (document.documentElement.dataset.portalSidebarBound) return;
+    document.documentElement.dataset.portalSidebarBound = 'true';
 
     sidebarToggle?.addEventListener('click', () => {
         if (window.matchMedia('(max-width: 900px)').matches) {

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS courses (
     id INT AUTO_INCREMENT PRIMARY KEY,
     course_code VARCHAR(20) NOT NULL UNIQUE,
     course_name VARCHAR(100) NOT NULL,
+    section_name VARCHAR(50) NOT NULL DEFAULT 'General',
     professor_id INT DEFAULT NULL,
     max_capacity INT DEFAULT 30,
     meeting_days VARCHAR(80) DEFAULT NULL,
@@ -61,7 +62,34 @@ CREATE TABLE IF NOT EXISTS assignments (
     professor_id INT NOT NULL,
     title VARCHAR(150) NOT NULL,
     description TEXT NOT NULL,
+    assessment_type ENUM('Quiz', 'Assessment', 'Exam') NOT NULL DEFAULT 'Assessment',
     due_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (professor_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS assignment_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    assignment_id INT NOT NULL,
+    question_text TEXT NOT NULL,
+    question_type ENUM('multiple_choice', 'identification') NOT NULL,
+    choices JSON DEFAULT NULL,
+    correct_answer VARCHAR(255) NOT NULL,
+    question_order INT NOT NULL DEFAULT 1,
+    FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS lessons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    course_id INT NOT NULL,
+    professor_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    content TEXT NOT NULL,
+    file_name VARCHAR(255) DEFAULT NULL,
+    file_path VARCHAR(255) DEFAULT NULL,
+    file_mime VARCHAR(100) DEFAULT NULL,
+    file_size INT UNSIGNED DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
     FOREIGN KEY (professor_id) REFERENCES users(id) ON DELETE CASCADE
@@ -70,6 +98,8 @@ CREATE TABLE IF NOT EXISTS assignments (
 CREATE TABLE IF NOT EXISTS assignment_completions (
     assignment_id INT NOT NULL,
     student_id INT NOT NULL,
+    score INT NOT NULL DEFAULT 0,
+    total_questions INT NOT NULL DEFAULT 0,
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (assignment_id, student_id),
     FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,

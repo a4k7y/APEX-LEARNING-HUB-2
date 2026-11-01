@@ -52,7 +52,7 @@
   --border: #e2e8f0;
   --border-light: #f1f5f9;
   --text-main: #334155;
-  --text-dark: #0f172a;
+  --text-dark: #64748b;
   --text-muted: #64748b;
   --text-light: #94a3b8;
 
@@ -65,6 +65,34 @@
   --shadow-lg: 0 14px 30px rgba(0, 0, 0, 0.09);
   --shadow-red: 0 16px 36px -8px rgba(217, 133, 150, 0.22);
   --transition: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #d98596 rgba(255, 240, 242, 0.9);
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 240, 242, 0.9);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid rgba(255, 240, 242, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #df8d9d, #d98596);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #e6a1ae, #df8d9d);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(255, 240, 242, 0.9);
 }
 
 /* ── Reset & Base ───────────────────────────────────────────────── */
@@ -382,13 +410,16 @@ nav.main-nav {
   font-weight: 600;
   transition:
     transform var(--transition),
-    box-shadow var(--transition);
+    box-shadow var(--transition),
+    background var(--transition);
   box-shadow: 0 3px 10px rgba(217, 133, 150, 0.25);
 }
 
 .btn-login-grad:hover {
+  background: linear-gradient(135deg, #b9e5ca 0%, #c9ecd6 50%, #dff5e7 100%);
+  color: #216b48 !important;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(217, 133, 150, 0.35);
+  box-shadow: 0 6px 16px rgba(117, 184, 143, 0.28);
 }
 
 .btn-chevron {
@@ -863,9 +894,11 @@ nav.main-nav {
 }
 
 .btn-hero-secondary:hover {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(30, 41, 59, 0.28);
+  background: linear-gradient(135deg, #b9e5ca 0%, #c9ecd6 50%, #dff5e7 100%);
+  border-color: #9ed5b5;
+  color: #216b48 !important;
   transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(117, 184, 143, 0.28);
 }
 
 /* ── Center-focused card carousels ──────────────────────────────── */

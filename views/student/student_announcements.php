@@ -1,7 +1,7 @@
 <?php
-require_once '../includes/session_check.php';
-checkAccess(['student'], '../auth/login.php');
-require_once '../config/db.php';
+require_once '../../includes/session_check.php';
+checkAccess(['student'], '../../auth/login.php');
+require_once '../../config/db.php';
 
 $studentId = (int) $_SESSION['user_id'];
 $announcementsStmt = $pdo->prepare("
@@ -44,16 +44,16 @@ $taskCountStmt->execute([
 $studentPendingTaskCount = (int) $taskCountStmt->fetchColumn();
 
 $pageTitle = 'Announcements | APEX Learning Hub';
-$extraCss = ['../css/admin.css?v=202610291355', '../css/student.css?v=202610292118'];
-$extraJs = '../js/student.js?v=202610291930';
+$extraCss = ['../../css/admin.css?v=202610291355', '../../css/student.css?v=202610292118'];
+$extraJs = '../../js/student.js?v=202610291930';
 $bodyClass = 'admin-dashboard student-dashboard';
 $useVisualTheme = true;
 $studentPage = 'announcements';
-require_once '../includes/header.php';
+require_once '../../includes/header.php';
 ?>
 
 <div class="student-dashboard-shell" id="studentDashboardShell">
-    <?php require '../includes/student_sidebar.php'; ?>
+    <?php require '../../includes/student_sidebar.php'; ?>
     <div class="container student-dashboard-content">
         <header class="student-page-header">
             <span class="student-eyebrow">Your updates</span>
@@ -83,7 +83,7 @@ require_once '../includes/header.php';
         <section class="student-page-list" id="studentAnnouncementList" aria-label="Announcements for this student">
             <?php if (empty($announcements)): ?>
                 <div class="student-overview-card student-empty-state">
-                    <h2>You’re all caught up</h2>
+                    <h2>You&rsquo;re all caught up</h2>
                     <p>There are no campus or course announcements for you right now.</p>
                 </div>
             <?php else: ?>
@@ -100,12 +100,12 @@ require_once '../includes/header.php';
                                 <h2><?= htmlspecialchars($announcement['title']) ?></h2>
                             </div>
                             <time datetime="<?= htmlspecialchars(date('c', strtotime($announcement['created_at']))) ?>">
-                                <?= date('M j, Y · g:i A', strtotime($announcement['created_at'])) ?>
+                                <?= date('M j, Y', strtotime($announcement['created_at'])) ?> &middot; <?= date('g:i A', strtotime($announcement['created_at'])) ?>
                             </time>
                         </div>
                         <p class="student-announcement-author">
                             Posted by <?= htmlspecialchars($announcement['first_name'] . ' ' . $announcement['last_name']) ?>
-                            · <?= htmlspecialchars(ucfirst($announcement['role'])) ?>
+                            &middot; <?= htmlspecialchars(ucfirst($announcement['role'])) ?>
                         </p>
                         <div class="student-announcement-body">
                             <?= nl2br(htmlspecialchars($announcement['message'])) ?>
@@ -119,4 +119,4 @@ require_once '../includes/header.php';
         </section>
     </div>
 </div>
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once '../../includes/footer.php'; ?>

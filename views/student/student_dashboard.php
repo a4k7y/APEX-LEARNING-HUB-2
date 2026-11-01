@@ -1,11 +1,12 @@
 <?php
-require_once '../includes/session_check.php';
-checkAccess(['student'], '../auth/login.php');
-require_once '../config/db.php';
+require_once '../../includes/session_check.php';
+checkAccess(['student'], '../../auth/login.php');
+require_once '../../config/db.php';
+require_once '../../includes/dashboard_greeting.php';
 
 $pageTitle = 'Student Portal | APEX Learning Hub';
-$extraCss  = ['../css/admin.css?v=202610291355', '../css/student.css?v=202610292118'];
-$extraJs   = '../js/student.js?v=202610291930';
+$extraCss  = ['../../css/admin.css?v=202610291355', '../../css/student.css?v=202610292118'];
+$extraJs   = '../../js/student.js?v=202610291930';
 $bodyClass = 'admin-dashboard student-dashboard';
 $useVisualTheme = true;
 
@@ -92,20 +93,19 @@ $studentPendingTaskCount = count($pendingAssignments) + count($pendingEnrollment
 $studentAnnouncementCount = count($announcements);
 $studentPage = 'dashboard';
 $manilaNow = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
-$hour = (int) $manilaNow->format('G');
-$greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
-$greetingFil = $hour < 12 ? 'Magandang umaga' : ($hour < 17 ? 'Magandang hapon' : 'Magandang gabi');
+$greeting = dashboardGreeting($manilaNow);
+$greetingFil = dashboardGreetingFilipino($manilaNow);
 $filipinoWeekdays = ['Linggo', 'Lunes', 'Martes', 'Miyerkules', 'Huwebes', 'Biyernes', 'Sabado'];
 $filipinoMonths = [1 => 'Enero', 'Pebrero', 'Marso', 'Abril', 'Mayo', 'Hunyo', 'Hulyo', 'Agosto', 'Setyembre', 'Oktubre', 'Nobyembre', 'Disyembre'];
 $dashboardDateFil = $filipinoWeekdays[(int) $manilaNow->format('w')]
     . ', ' . $filipinoMonths[(int) $manilaNow->format('n')]
     . ' ' . $manilaNow->format('j, Y');
 
-require_once '../includes/header.php';
+require_once '../../includes/header.php';
 ?>
 
 <div class="student-dashboard-shell" id="studentDashboardShell">
-    <?php require '../includes/student_sidebar.php'; ?>
+    <?php require '../../includes/student_sidebar.php'; ?>
 
 <div class="container student-dashboard-content">
     <div class="student-dashboard-heading">
@@ -122,9 +122,7 @@ require_once '../includes/header.php';
         <div class="student-dashboard-main-column student-dashboard-intro">
         <section class="student-welcome-card">
             <div class="student-welcome-copy">
-                <span class="student-eyebrow">APEX Learning Hub</span>
                 <h1><span data-lang-en><?= htmlspecialchars($greeting) ?></span><span data-lang-fil style="display:none;"><?= htmlspecialchars($greetingFil) ?></span>, <?= htmlspecialchars($currentUser['first_name'] ?? $_SESSION['user_name']) ?></h1>
-                <p>Here’s what’s happening with your courses today.</p>
                 <a class="btn btn-primary" href="student_class_schedule.php">View class schedule</a>
             </div>
             <span class="student-id-chip">Student ID #<?= $studentId ?></span>
@@ -158,13 +156,13 @@ require_once '../includes/header.php';
                         <span class="student-check-empty" aria-hidden="true"></span>
                         <span class="student-checklist-copy">
                             <strong>Enrollment decision pending</strong>
-                            <small><?= htmlspecialchars($task['course_code']) ?> · <?= htmlspecialchars($task['course_name']) ?></small>
+                            <small><?= htmlspecialchars($task['course_code']) ?> &middot; <?= htmlspecialchars($task['course_name']) ?></small>
                         </span>
                         <span class="student-task-status">Pending</span>
                     </a>
                 <?php endforeach; ?>
                 <?php if ($studentPendingTaskCount === 0): ?>
-                    <p class="student-empty-note student-empty-inline">You’re all caught up. No pending tasks.</p>
+                    <p class="student-empty-note student-empty-inline">You&rsquo;re all caught up. No pending tasks.</p>
                 <?php endif; ?>
             </div>
         </section>
@@ -185,7 +183,7 @@ require_once '../includes/header.php';
                             <strong><?= htmlspecialchars($announcement['title']) ?></strong>
                             <small>
                                 <?= htmlspecialchars($announcement['course_code'] ?: 'Campus-wide') ?>
-                                · <?= htmlspecialchars($announcement['first_name'] . ' ' . $announcement['last_name']) ?>
+                                &middot; <?= htmlspecialchars($announcement['first_name'] . ' ' . $announcement['last_name']) ?>
                             </small>
                         </span>
                     </a>
@@ -280,7 +278,7 @@ require_once '../includes/header.php';
                             <div style="margin-top:1rem;">
                                 <?php if ($c['my_status'] === 'APPROVED'): ?>
                                     <button class="btn btn-outline btn-sm" style="width:100%; cursor:default;" disabled>
-                                        ✓ Enrolled in Class
+                                        &#10003; Enrolled in Class
                                     </button>
                                 <?php elseif ($c['my_status'] === 'PENDING'): ?>
                                     <button class="btn btn-outline btn-sm" style="width:100%; color:var(--status-pending);" disabled>
@@ -291,7 +289,7 @@ require_once '../includes/header.php';
                                         Capacity Reached
                                     </button>
                                 <?php else: ?>
-                                    <form action="../api/student_process.php" method="POST">
+                                    <form action="../../api/student_process.php" method="POST">
                                         <input type="hidden" name="action" value="apply_course">
                                         <input type="hidden" name="course_id" value="<?= $c['id'] ?>">
                                         <button type="submit" class="btn btn-teal btn-sm" style="width:100%;">
@@ -347,7 +345,7 @@ require_once '../includes/header.php';
                                         <?= $app['decided_at'] ? date('M d, Y', strtotime($app['decided_at'])) : '<span class="text-muted">Awaiting decision</span>' ?>
                                     </td>
                                     <td>
-                                        <form action="../api/student_process.php" method="POST" onsubmit="return confirm('Withdraw or remove this course application?');">
+                                        <form action="../../api/student_process.php" method="POST" onsubmit="return confirm('Withdraw or remove this course application?');">
                                             <input type="hidden" name="action" value="drop_course">
                                             <input type="hidden" name="enrollment_id" value="<?= $app['enrollment_id'] ?>">
                                             <button type="submit" class="btn btn-outline btn-sm" style="color:var(--coral-dark);">
@@ -389,22 +387,24 @@ require_once '../includes/header.php';
                     <div class="card-title">Edit Profile Information</div>
                 </div>
 
-                <form action="../api/student_process.php" method="POST">
+                <form action="../../api/student_process.php" method="POST">
                     <input type="hidden" name="action" value="update_profile">
 
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                         <div class="form-group">
                             <label for="prof_fn">First Name *</label>
-                            <input type="text" id="prof_fn" name="first_name" class="form-control" value="<?= htmlspecialchars($currentUser['first_name']) ?>" required>
+                            <input type="text" id="prof_fn" name="first_name" class="form-control"
+                                placeholder="e.g. Juan" value="<?= htmlspecialchars($currentUser['first_name']) ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="prof_ln">Last Name *</label>
-                            <input type="text" id="prof_ln" name="last_name" class="form-control" value="<?= htmlspecialchars($currentUser['last_name']) ?>" required>
+                            <input type="text" id="prof_ln" name="last_name" class="form-control"
+                                placeholder="e.g. Dela Cruz" value="<?= htmlspecialchars($currentUser['last_name']) ?>" required>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="prof_email">Institutional Email</label>
+                        <label for="prof_email">APEX Email</label>
                         <input type="email" id="prof_email" class="form-control" value="<?= htmlspecialchars($currentUser['email']) ?>" disabled>
                         <small class="text-muted">Email address is managed by campus administration.</small>
                     </div>
@@ -421,4 +421,4 @@ require_once '../includes/header.php';
 </div>
 </div>
 
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once '../../includes/footer.php'; ?>

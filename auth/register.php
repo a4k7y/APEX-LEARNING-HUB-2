@@ -2,6 +2,7 @@
 session_start();
 require_once '../config/db.php';
 require_once '../includes/password_policy.php';
+require_once '../includes/email_policy.php';
 
 if (isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
@@ -21,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($firstName) || empty($lastName) || empty($email) || empty($password)) {
         $error = "Please fill in all required fields.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please provide a valid institutional email address.";
+    } elseif (!isValidApexEmail($email)) {
+        $error = apexEmailPolicyMessage();
     } elseif ($password !== $confirmPassword) {
         $error = "Passwords do not match.";
     } elseif (!isValidPassword($password)) {
@@ -112,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             id="first_name" 
                             name="first_name" 
                             class="form-control" 
-                            placeholder="e.g. John" 
+                            placeholder="e.g. Juan" 
                              value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>"
                             required
                         >
@@ -125,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             id="last_name" 
                             name="last_name" 
                             class="form-control" 
-                            placeholder="e.g. Doe" 
+                            placeholder="e.g. Dela Cruz" 
                              value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>"
                             required
                         >
@@ -133,13 +134,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="form-group">
-                    <label for="email">Email *</label>
+                    <label for="email">APEX Email *</label>
                     <input 
                         type="email" 
                         id="email" 
                         name="email" 
                         class="form-control" 
-                        placeholder="email@apex.edu.ph" 
+                        placeholder="email@apex.edu.ph"
+                        pattern="[A-Za-z0-9._%+\-]+@apex\.edu\.ph"
+                        title="Use an APEX Email ending in @apex.edu.ph."
                              value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
                         required
                     >

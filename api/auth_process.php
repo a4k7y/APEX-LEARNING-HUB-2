@@ -3,6 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 session_start();
 require_once '../config/db.php';
 require_once '../includes/password_policy.php';
+require_once '../includes/email_policy.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? 'login';
 
@@ -15,6 +16,10 @@ if ($action === 'login') {
         echo json_encode(['success' => false, 'message' => 'Email and password are required.']);
         exit;
     }
+    if (!isValidApexEmail($email)) {
+        echo json_encode(['success' => false, 'message' => apexEmailPolicyMessage()]);
+        exit;
+    }
 
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
     $stmt->execute(['email' => $email]);
@@ -25,18 +30,20 @@ if ($action === 'login') {
             echo json_encode(['success' => false, 'message' => 'This account is disabled or archived. Contact an administrator for assistance.']);
             exit;
         }
-        if ($user['role'] === 'dean') {
-            echo json_encode(['success' => false, 'message' => 'Dean sign-in is not available yet. Please contact an administrator.']);
-            exit;
-        }
-
         session_regenerate_id(true);
         $_SESSION['user_id']   = (int)$user['id'];
         $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
         $_SESSION['role']      = $user['role'];
         $_SESSION['email']     = $user['email'];
 
-        $redirect = '../views/' . $user['role'] . '_dashboard.php';
+        $dashboardPaths = [
+            'admin' => '../views/admin/admin_dashboard.php',
+            'registrar' => '../views/registrar/registrar_dashboard.php',
+            'professor' => '../views/professor/professor_dashboard.php',
+            'dean' => '../views/dean/dean_dashboard.php',
+            'student' => '../views/student/student_dashboard.php',
+        ];
+        $redirect = $dashboardPaths[$user['role']] ?? '../auth/login.php';
         echo json_encode(['success' => true, 'redirect' => $redirect, 'role' => $user['role']]);
         exit;
     }
@@ -56,6 +63,10 @@ if ($action === 'register') {
 
     if (empty($firstName) || empty($lastName) || empty($email) || empty($password)) {
         echo json_encode(['success' => false, 'message' => 'All required fields must be filled.']);
+        exit;
+    }
+    if (!isValidApexEmail($email)) {
+        echo json_encode(['success' => false, 'message' => apexEmailPolicyMessage()]);
         exit;
     }
 

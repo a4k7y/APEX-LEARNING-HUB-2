@@ -1,7 +1,7 @@
 <?php
-require_once '../includes/session_check.php';
-checkAccess(['student'], '../auth/login.php');
-require_once '../config/db.php';
+require_once '../../includes/session_check.php';
+checkAccess(['student'], '../../auth/login.php');
+require_once '../../config/db.php';
 
 $studentId = (int) $_SESSION['user_id'];
 $coursesStmt = $pdo->prepare("
@@ -18,16 +18,16 @@ $coursesStmt->execute(['student_id' => $studentId]);
 $courses = $coursesStmt->fetchAll();
 
 $pageTitle = 'My Courses | APEX Learning Hub';
-$extraCss = ['../css/admin.css?v=202610291355', '../css/student.css?v=202610292118'];
-$extraJs = '../js/student.js?v=202610291930';
+$extraCss = ['../../css/admin.css?v=202610291355', '../../css/student.css?v=202610292118'];
+$extraJs = '../../js/student.js?v=202610291930';
 $bodyClass = 'admin-dashboard student-dashboard';
 $useVisualTheme = true;
 $studentPage = 'courses';
-require_once '../includes/header.php';
+require_once '../../includes/header.php';
 ?>
 
 <div class="student-dashboard-shell" id="studentDashboardShell">
-    <?php require '../includes/student_sidebar.php'; ?>
+    <?php require '../../includes/student_sidebar.php'; ?>
     <div class="container student-dashboard-content">
         <header class="student-page-header">
             <span class="student-eyebrow">Your learning</span>
@@ -77,7 +77,7 @@ require_once '../includes/header.php';
                                 <strong>Time</strong>
                                 <span>
                                     <?php if ($course['start_time'] && $course['end_time']): ?>
-                                        <?= date('g:i A', strtotime($course['start_time'])) ?> – <?= date('g:i A', strtotime($course['end_time'])) ?>
+                                        <?= date('g:i A', strtotime($course['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($course['end_time'])) ?>
                                     <?php else: ?>
                                         To be announced
                                     <?php endif; ?>
@@ -91,7 +91,7 @@ require_once '../includes/header.php';
 
                         <div class="course-card-bottom student-course-actions">
                             <a class="btn btn-outline btn-sm" href="student_class_schedule.php">View schedule</a>
-                            <form action="../api/student_process.php" method="POST" onsubmit="return confirm('Are you sure you want to drop this enrolled course?');">
+                            <form action="../../api/student_process.php" method="POST" onsubmit="return confirm('Are you sure you want to drop this enrolled course?');">
                                 <input type="hidden" name="action" value="drop_course">
                                 <input type="hidden" name="enrollment_id" value="<?= (int) $course['enrollment_id'] ?>">
                                 <button type="submit" class="btn btn-outline btn-sm student-drop-course">Drop course</button>
@@ -103,4 +103,4 @@ require_once '../includes/header.php';
         <?php endif; ?>
     </div>
 </div>
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once '../../includes/footer.php'; ?>

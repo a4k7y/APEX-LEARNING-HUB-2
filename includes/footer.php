@@ -1,10 +1,13 @@
 <?php if (!empty($useVisualTheme)): ?>
     </main>
     <?php
-    $visualBase = '../visual/';
+    $visualBase = $siteRootPath ?? '../';
+    $visualBase .= 'visual/';
     if (isset($extraJs)):
     ?>
-        <script src="<?= htmlspecialchars($extraJs) ?>"></script>
+        <?php foreach ((array) $extraJs as $script): ?>
+            <script src="<?= htmlspecialchars($script) ?>"></script>
+        <?php endforeach; ?>
     <?php
     endif;
     require __DIR__ . '/../visual/_partials/foot.php';
@@ -22,9 +25,11 @@
         </div>
     </footer>
     <?php if (isset($extraJs)): ?>
-        <script src="<?= htmlspecialchars($extraJs) ?>"></script>
+        <?php foreach ((array) $extraJs as $script): ?>
+            <script src="<?= htmlspecialchars($script) ?>"></script>
+        <?php endforeach; ?>
     <?php endif; ?>
-    <script src="../visual/js/visual.js?v=202610291931"></script>
+    <script src="<?= htmlspecialchars(($siteRootPath ?? '../') . 'visual/js/visual.js?v=202610291931') ?>"></script>
 </body>
 </html>
 <?php endif; ?>

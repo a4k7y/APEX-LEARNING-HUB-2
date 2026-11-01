@@ -1,9 +1,37 @@
 
 document.addEventListener('DOMContentLoaded', () => {
+    const profileMenu = document.querySelector('[data-profile-menu]');
+    const profileMenuTrigger = document.querySelector('[data-profile-menu-trigger]');
+    const profileMenuContent = document.querySelector('[data-profile-menu-content]');
+    if (document.documentElement.dataset.portalProfileBound) {
+        // The shared student script already owns profile interactions.
+    } else {
+    const setProfileMenuOpen = (open) => {
+        profileMenuTrigger?.setAttribute('aria-expanded', String(open));
+        if (profileMenuContent) profileMenuContent.hidden = !open;
+    };
+
+    profileMenuTrigger?.addEventListener('click', () => {
+        setProfileMenuOpen(profileMenuTrigger.getAttribute('aria-expanded') !== 'true');
+    });
+    document.addEventListener('click', event => {
+        if (profileMenu && !profileMenu.contains(event.target)) setProfileMenuOpen(false);
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') setProfileMenuOpen(false);
+    });
+    document.documentElement.dataset.portalProfileBound = 'true';
+    }
+
     const dashboardShell = document.getElementById('studentDashboardShell');
     const sidebarToggle = document.querySelector('.student-sidebar-toggle');
     const mobileToggle = document.querySelector('.student-mobile-toggle');
     const sidebarBackdrop = document.querySelector('.student-sidebar-backdrop');
+
+    if (document.documentElement.dataset.portalSidebarBound) {
+        return;
+    }
+    document.documentElement.dataset.portalSidebarBound = 'true';
 
     const setSidebarState = (open) => {
         if (!dashboardShell) return;
@@ -48,6 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const hashTarget = window.location.hash.slice(1);
+    if (hashTarget) {
+        const hashButton = document.querySelector(`.tab-btn[data-target="${hashTarget}"]`);
+        hashButton?.click();
+    }
+
     const openModalBtns = document.querySelectorAll('[data-open-modal]');
     const closeModalBtns = document.querySelectorAll('[data-close-modal]');
     const modalBackdrops = document.querySelectorAll('.modal-backdrop');
@@ -60,6 +94,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 modal.classList.add('active');
             }
         });
+    });
+
+    const lessonFileInput = document.getElementById('lesson_file');
+    const lessonFileName = document.getElementById('lessonFileName');
+    lessonFileInput?.addEventListener('change', () => {
+        const file = lessonFileInput.files?.[0];
+        if (file && lessonFileName) {
+            lessonFileName.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        }
+    });
+
+    const userRoleSelect = document.querySelector('[data-student-course-toggle]');
+    const studentCourseGroup = document.getElementById('studentCourseGroup');
+    const studentCourseSelect = document.getElementById('user_course_id');
+    const updateStudentCourseVisibility = () => {
+        const isStudent = userRoleSelect?.value === 'student';
+        if (studentCourseGroup) studentCourseGroup.hidden = !isStudent;
+        if (studentCourseSelect) studentCourseSelect.required = isStudent;
+    };
+    userRoleSelect?.addEventListener('change', updateStudentCourseVisibility);
+    updateStudentCourseVisibility();
+
+    const assessmentQuestions = document.getElementById('assessmentQuestions');
+    const addQuestionButton = document.querySelector('[data-add-question]');
+    const updateQuestionType = (editor) => {
+        const type = editor.querySelector('.assessment-question-type')?.value;
+        const choicesGroup = editor.querySelector('.assessment-choices-group');
+        const choices = editor.querySelector('[name$="[choices]"]');
+        const answer = editor.querySelector('.assessment-answer');
+        if (choicesGroup) choicesGroup.hidden = type !== 'multiple_choice';
+        if (choices) choices.required = false;
+        if (answer) answer.placeholder = type === 'multiple_choice' ? 'Enter the exact correct choice' : 'Enter the expected answer';
+    };
+    assessmentQuestions?.querySelectorAll('.assessment-question-editor').forEach(editor => {
+        editor.querySelector('.assessment-question-type')?.addEventListener('change', () => updateQuestionType(editor));
+        updateQuestionType(editor);
+    });
+    addQuestionButton?.addEventListener('click', () => {
+        if (!assessmentQuestions) return;
+        const index = assessmentQuestions.querySelectorAll('.assessment-question-editor').length;
+        const editor = document.createElement('div');
+        editor.className = 'assessment-question-editor';
+        editor.innerHTML = `
+            <div class="assessment-question-editor-heading"><strong>Question ${index + 1}</strong><button type="button" class="assessment-remove-question">Remove</button></div>
+            <div class="form-group"><label>Question *</label><textarea name="questions[${index}][text]" class="form-control" rows="2" required></textarea></div>
+            <div class="form-group"><label>Question type *</label><select name="questions[${index}][type]" class="form-control assessment-question-type"><option value="multiple_choice">Multiple choice</option><option value="identification">Identification</option></select></div>
+            <div class="form-group assessment-choices-group"><label>Choices (one per line, optional)</label><textarea name="questions[${index}][choices]" class="form-control" rows="3" placeholder="Choice A&#10;Choice B&#10;Choice C"></textarea></div>
+            <div class="form-group"><label>Correct answer *</label><input name="questions[${index}][answer]" class="form-control assessment-answer" required></div>`;
+        assessmentQuestions.appendChild(editor);
+        editor.querySelector('.assessment-question-type')?.addEventListener('change', () => updateQuestionType(editor));
+        editor.querySelector('.assessment-remove-question')?.addEventListener('click', () => editor.remove());
+        updateQuestionType(editor);
     });
 
     document.querySelectorAll('.course-schedule-edit').forEach(button => {

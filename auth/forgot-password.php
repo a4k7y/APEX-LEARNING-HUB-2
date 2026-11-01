@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/email_policy.php';
 
 if (isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
@@ -14,8 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($email === '') {
         $error = "Please enter your APEX email address.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please provide a valid APEX email address.";
+    } elseif (!isValidApexEmail($email)) {
+        $error = apexEmailPolicyMessage();
     } else {
         $stmt = $pdo->prepare("SELECT id, email FROM users WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $email]);
@@ -186,7 +187,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label for="email">APEX Email</label>
                         <input type="email" id="email" name="email" class="form-control"
-                            placeholder="e.g. name@apex.edu.ph" autocomplete="email" required>
+                            placeholder="e.g. name@apex.edu.ph" pattern="[A-Za-z0-9._%+\-]+@apex\.edu\.ph"
+                            title="Use an APEX Email ending in @apex.edu.ph." autocomplete="email" required>
                     </div>
 
                     <button type="submit" class="btn btn-primary">

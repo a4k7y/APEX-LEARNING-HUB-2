@@ -2,29 +2,6 @@
 $visualBase = $visualBase ?? '';
 $activePage = $activePage ?? '';
 ?>
-<!-- ===== Search & Utility Bar ===== -->
-<div class="sub-bar">
-    <div class="sub-bar-container">
-        <div class="sub-bar-right">
-            <div class="sub-search" role="search">
-                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="globalSearch" placeholder="Search courses, announcements, policies…"
-                    autocomplete="off" aria-label="Search site content">
-                <button type="button" id="searchClear" class="search-clear-btn" aria-label="Clear search query"
-                    style="display:none;">&times;</button>
-                <div id="searchResults" class="search-results-dropdown" role="listbox" aria-live="polite"></div>
-            </div>
-
-            <?php require __DIR__ . '/../../includes/language_switcher.php'; ?>
-        </div>
-    </div>
-</div>
-
 <!-- ===== Primary Navigation Header ===== -->
 <header class="main-header">
     <div class="header-container">

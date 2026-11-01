@@ -3,6 +3,7 @@ session_start();
 require_once '../config/db.php';
 require_once '../includes/session_check.php';
 require_once '../includes/password_policy.php';
+require_once '../includes/email_policy.php';
 
 checkAccess(['registrar'], '../auth/login.php');
 
@@ -18,7 +19,7 @@ function respond($success, $message, $redirect = null) {
         exit;
     }
     if ($redirect === null) {
-        $redirect = '../views/registrar_dashboard.php';
+        $redirect = '../views/registrar/registrar_dashboard.php';
     }
     $query = $success ? "msg=" . urlencode($message) : "error=" . urlencode($message);
     header("Location: $redirect?$query");
@@ -73,12 +74,13 @@ try {
         case 'add_course':
             $code = strtoupper(trim($_POST['course_code'] ?? ''));
             $name = trim($_POST['course_name'] ?? '');
+            $sectionName = trim($_POST['section_name'] ?? 'General');
             $profId = !empty($_POST['professor_id']) ? (int)$_POST['professor_id'] : null;
             $capacity = !empty($_POST['max_capacity']) ? (int)$_POST['max_capacity'] : 30;
             $schedule = getCourseScheduleInput();
 
-            if (empty($code) || empty($name) || $schedule === null) {
-                respond(false, "Course Code and Name are required. Enter a valid schedule or leave schedule fields blank.");
+            if (empty($code) || empty($name) || empty($sectionName) || strlen($sectionName) > 50 || $schedule === null) {
+                respond(false, "Course Code, Name, and Section are required. Enter a valid schedule or leave schedule fields blank.");
             }
 
             $check = $pdo->prepare("SELECT id FROM courses WHERE course_code = :code");
@@ -89,12 +91,13 @@ try {
 
             $stmt = $pdo->prepare("
                 INSERT INTO courses
-                    (course_code, course_name, professor_id, max_capacity, meeting_days, start_time, end_time, room)
-                VALUES (:code, :name, :prof, :cap, :meeting_days, :start_time, :end_time, :room)
+                    (course_code, course_name, section_name, professor_id, max_capacity, meeting_days, start_time, end_time, room)
+                VALUES (:code, :name, :section_name, :prof, :cap, :meeting_days, :start_time, :end_time, :room)
             ");
             $stmt->execute([
                 'code' => $code,
                 'name' => $name,
+                'section_name' => $sectionName,
                 'prof' => $profId,
                 'cap' => $capacity,
                 'meeting_days' => $schedule['meeting_days'],
@@ -145,9 +148,13 @@ try {
             $password = $_POST['password'] ?? '';
             $password = is_string($password) ? $password : '';
             $role = $_POST['role'] ?? 'student';
+            $courseId = (int) ($_POST['course_id'] ?? 0);
 
             if (empty($fn) || empty($ln) || empty($email) || empty($password)) {
                 respond(false, "All user fields are required.");
+            }
+            if (!isValidApexEmail($email)) {
+                respond(false, apexEmailPolicyMessage());
             }
             if (!in_array($role, ['dean', 'professor', 'student'], true)) {
                 respond(false, "Invalid role specified.");
@@ -155,11 +162,32 @@ try {
             if (!isValidPassword($password)) {
                 respond(false, passwordPolicyMessage());
             }
+            if ($role === 'student' && $courseId <= 0) {
+                respond(false, "Choose the student's designated section.");
+            }
 
             $check = $pdo->prepare("SELECT id FROM users WHERE email = :email");
             $check->execute(['email' => $email]);
             if ($check->fetch()) {
                 respond(false, "User email '$email' is already registered.");
+            }
+
+            $course = null;
+            if ($role === 'student') {
+                $courseStmt = $pdo->prepare("
+                    SELECT id, course_code, max_capacity,
+                           (SELECT COUNT(*) FROM enrollments WHERE course_id = courses.id AND status = 'APPROVED') AS enrolled_count
+                    FROM courses
+                    WHERE id = :course_id
+                ");
+                $courseStmt->execute(['course_id' => $courseId]);
+                $course = $courseStmt->fetch();
+                if (!$course) {
+                    respond(false, "The selected section does not exist.");
+                }
+                if ((int) $course['enrolled_count'] >= (int) $course['max_capacity']) {
+                    respond(false, "The selected section has reached its maximum capacity.");
+                }
             }
 
             $hash = password_hash($password, PASSWORD_BCRYPT);
@@ -172,6 +200,17 @@ try {
                 'role' => $role,
                 'created_by' => (int) $_SESSION['user_id'],
             ]);
+            if ($role === 'student') {
+                $enrollmentStmt = $pdo->prepare("
+                    INSERT INTO enrollments (student_id, course_id, status, decided_at)
+                    VALUES (:student_id, :course_id, 'APPROVED', NOW())
+                ");
+                $enrollmentStmt->execute([
+                    'student_id' => (int) $pdo->lastInsertId(),
+                    'course_id' => $courseId,
+                ]);
+                respond(true, "Student account created and assigned to {$course['course_code']}.");
+            }
             respond(true, "New $role account created for $fn $ln.");
             break;
 

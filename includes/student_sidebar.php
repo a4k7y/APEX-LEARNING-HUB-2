@@ -21,6 +21,10 @@
             <span class="student-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
             <span class="student-nav-label">Pending Tasks</span>
         </a>
+        <a class="student-sidebar-link<?= $studentPage === 'lessons' ? ' active' : '' ?>" href="student_lessons.php">
+            <span class="student-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+            <span class="student-nav-label">Lessons</span>
+        </a>
         <a class="student-sidebar-link<?= $studentPage === 'announcements' ? ' active' : '' ?>" href="student_announcements.php">
             <span class="student-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 14V9a1 1 0 0 1 1-1h3l9-4v14l-9-4H5a1 1 0 0 1-1-1ZM8 14l2 6h4l-2.5-7.1M20 8l2-1M20 12h2M20 16l2 1"/></svg></span>
             <span class="student-nav-label">Announcements</span>
